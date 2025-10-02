@@ -22,4 +22,6 @@ python astronet/tune.py --model=AstroCNNModel --config_name=local_global_new --t
 Run predictions (or use Predict.ipynb for one-offs):
 ```
 python astronet/predict.py --model_dir=/tmp/astronet/AstroCNNModel_local_global_multiclass_20200222_154634 --data_files=astronet/tfrecords-new\+old/* --output_file=/home/${USER}/predictions.csv
+
+.
 ```
