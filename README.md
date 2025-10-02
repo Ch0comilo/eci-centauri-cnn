@@ -4,13 +4,15 @@ This is a variation of the Liang model found in https://github.com/yuliang419/As
 
 Generate new input data:
 ```
-python -m astronet.preprocess.generate_input_records --input_tce_csv_file="C:\Users\danie\data\NASA\tces_with_labels_v3.csv" --tess_data_dir="C:\Users\danie\data\NASA\LC" --output_dir=astronet/tfrecords-new+old --num_shards=8
+python3 -m astronet.preprocess.generate_input_records --input_tce_csv_file=tces-new+old.csv --tess_data_dir=/home/astronet/NASA/LC/LC --output_dir=tfrecords-new+old --num_shards=8 --vetting_features=1
 ```
 
 Train ensemble (modify the .sh file to match the output_dir above):
 ```
 ./astronet/ensemble_train.sh
 ```
+
+/home/astronet/astronet/ensemble_train.sh
 
 Tune (requires some setup, see Tune.ipynb):
 ```

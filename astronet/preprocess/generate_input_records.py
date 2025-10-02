@@ -20,9 +20,7 @@ from absl import app
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import glob
 
-from astropy.io import fits
 from astronet.preprocess import preprocess
 
 
@@ -167,107 +165,68 @@ def _standard_views(ex, tic, time, flux, period, epoc, duration, bkspace, apertu
     
   return fold_num
 
-# Build an index (dictionary) once so you don’t search every time
-_fits_index = None
-def build_fits_index(data_dir):
-    """Scan FITS files in data_dir and return {TICID: filepath}."""
-    index = {}
-    for filepath in glob.glob(f"{data_dir}/**/*.fits", recursive=True):
-        try:
-            with fits.open(filepath, mode="readonly") as hdul:
-                header = hdul[0].header
-                if "TICID" in header:
-                    index[int(header["TICID"])] = filepath
-        except Exception:
-            continue
-    return index
-
 
 def _process_tce(tce, bkspace=None):
-  global _fits_index
-  if _fits_index is None:
-      _fits_index = build_fits_index(FLAGS.tess_data_dir)
-
-  ticid = int(tce["TIC ID"])
-  if ticid not in _fits_index:
-      raise FileNotFoundError(f"No FITS file found for TIC ID {ticid}")
-
-  fits_file = _fits_index[ticid]
-
-  # Ensure MinT and MaxT are floats
-  min_t = float(tce['MinT'])
-  max_t = float(tce['MaxT'])
-
-  # Load light curve
-  time, flux = preprocess.read_and_process_light_curve(
-      FLAGS.tess_data_dir, "SAP_FLUX", fits_file, min_t, max_t
-  )
-
-  if FLAGS.vetting_features == "y":
-      apertures = {
-          "s": preprocess.read_and_process_light_curve(
-              FLAGS.tess_data_dir, "SAP_FLUX_SML", fits_file, min_t, max_t
-          ),
-          "m": preprocess.read_and_process_light_curve(
-              FLAGS.tess_data_dir, "SAP_FLUX_MID", fits_file, min_t, max_t
-          ),
-          "l": preprocess.read_and_process_light_curve(
-              FLAGS.tess_data_dir, "SAP_FLUX_LAG", fits_file, min_t, max_t
-          ),
-      }
+  time, flux = preprocess.read_and_process_light_curve(FLAGS.tess_data_dir, 'SAP_FLUX', tce.File, tce.MinT, tce.MaxT)
+  if FLAGS.vetting_features == 'y':
+    apertures = {
+        's': preprocess.read_and_process_light_curve(FLAGS.tess_data_dir, 'SAP_FLUX_SML', tce.File, tce.MinT, tce.MaxT),
+        'm': preprocess.read_and_process_light_curve(FLAGS.tess_data_dir, 'SAP_FLUX_MID', tce.File, tce.MinT, tce.MaxT),
+        'l': preprocess.read_and_process_light_curve(FLAGS.tess_data_dir, 'SAP_FLUX_LAG', tce.File, tce.MinT, tce.MaxT),
+    }
   else:
-      apertures = {}
+    apertures = {}
 
   ex = tf.train.Example()
 
-  # Convert numeric fields to float to avoid TypeError
-  period = float(tce['Period'])
-  epoch = float(tce['Epoch'])
-  duration = float(tce['Duration'])
-  depth = float(tce['Depth'])
-  tmag = float(tce['Tmag'])
+  for bkspace in [0.3, 5.0, None]:
+    fold_num = _standard_views(ex, tce['TIC ID'], time, flux, tce.Period, tce.Epoch, tce.Duration, bkspace, apertures)
 
-  for bk in [0.3, 5.0, None]:
-      fold_num = _standard_views(
-          ex,
-          ticid,
-          time,
-          flux,
-          period,
-          epoch,
-          duration,
-          bk,
-          apertures
-      )
+  _set_int64_feature(ex, 'astro_id', [tce['TIC ID']])
 
-  _set_int64_feature(ex, 'astro_id', [ticid])
+  _set_int64_feature(ex, 'disp_E', [tce['disp_E']])
+  _set_int64_feature(ex, 'disp_N', [tce['disp_N']])
+  _set_int64_feature(ex, 'disp_J', [tce['disp_J']])
+  _set_int64_feature(ex, 'disp_S', [tce['disp_S']])
+  _set_int64_feature(ex, 'disp_B', [tce['disp_B']])
 
-  _set_float_feature(ex, 'Period', [period])
-  _set_float_feature(ex, 'Duration', [duration])
-  _set_float_feature(ex, 'Transit_Depth', [depth])
-  _set_float_feature(ex, 'Tmag', [tmag])
+  assert not np.isnan(tce.Period)
+  _set_float_feature(ex, 'Period', [tce.Period])
 
-  # Handle star mass
-  smass = float(tce['SMass']) if pd.notna(tce['SMass']) else 0
-  _set_float_feature(ex, 'star_mass', [smass])
-  _set_float_feature(ex, 'star_mass_present', [1 if smass != 0 else 0])
+  assert not np.isnan(tce.Duration)
+  _set_float_feature(ex, 'Duration', [tce.Duration])
 
-  # Handle star radius
-  srad = float(tce['SRad']) if pd.notna(tce['SRad']) else 0
-  _set_float_feature(ex, 'star_rad', [srad])
-  _set_float_feature(ex, 'star_rad_present', [1 if srad != 0 else 0])
+  assert not np.isnan(tce.Depth)
+  _set_float_feature(ex, 'Transit_Depth', [tce.Depth])
 
-  # Handle estimated star radius
-  srad_est = float(tce['SRadEst']) if pd.notna(tce['SRadEst']) else 0
-  _set_float_feature(ex, 'star_rad_est', [srad_est])
-  _set_float_feature(ex, 'star_rad_est_present', [1 if srad_est != 0 else 0])
+  assert not np.isnan(tce.Tmag)
+  _set_float_feature(ex, 'Tmag', [tce.Tmag])
+
+  if np.isnan(tce.SMass):
+    _set_float_feature(ex, 'star_mass', [0])
+    _set_float_feature(ex, 'star_mass_present', [0])
+  else:
+    _set_float_feature(ex, 'star_mass', [tce.SMass])
+    _set_float_feature(ex, 'star_mass_present', [1])
+
+  if np.isnan(tce.SRad):
+    _set_float_feature(ex, 'star_rad', [0])
+    _set_float_feature(ex, 'star_rad_present', [0])
+  else:
+    _set_float_feature(ex, 'star_rad', [tce.SRad])
+    _set_float_feature(ex, 'star_rad_present', [1])
+
+  if np.isnan(tce.SRadEst):
+    _set_float_feature(ex, 'star_rad_est', [0])
+    _set_float_feature(ex, 'star_rad_est_present', [0])
+  else:
+    _set_float_feature(ex, 'star_rad_est', [tce.SRadEst])
+    _set_float_feature(ex, 'star_rad_est_present', [1])
 
   _set_float_feature(ex, 'n_folds', [len(set(fold_num))])
   _set_float_feature(ex, 'n_points', [len(fold_num)])
 
   return ex
-
-
 
 
 def _process_file_shard(tce_table, file_name):
@@ -328,13 +287,7 @@ def _process_file_shard(tce_table, file_name):
 def main(_):
     tf.io.gfile.makedirs(FLAGS.output_dir)
 
-    tce_table = pd.read_csv(
-    FLAGS.input_tce_csv_file,
-    comment="#",
-    header=0,
-    low_memory=False)
-
-    tce_table.dropna(subset=['TIC ID'], inplace=True)
+    tce_table = pd.read_csv(FLAGS.input_tce_csv_file, header=0, low_memory=False)
 
     num_tces = len(tce_table)
     logging.info("Read %d TCEs", num_tces)

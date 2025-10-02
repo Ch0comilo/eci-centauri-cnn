@@ -12,8 +12,8 @@ do
     python astronet/train.py \
         --model=${MODEL} \
         --config_name=${CFG} \
-        --train_files='/mnt/tess/astronet/tfrecords-38-train/*' \
-        --eval_files='/mnt/tess/astronet/tfrecords-38-val/*' \
+        --train_files='/home/astronet/tfrecords-new+old/train/*' \
+        --eval_files='/home/astronet/tfrecords-new+old/test/*' \
         --train_steps=0 \
         --model_dir="/mnt/tess/astronet/checkpoints/${NAME}_38_run_2/${i}"
 done
@@ -24,8 +24,8 @@ do
     python astronet/train.py \
         --model=${MODEL} \
         --config_name=${CFG} \
-        --train_files='/mnt/tess/astronet/tfrecords-38-y1-train/*' \
-        --eval_files='/mnt/tess/astronet/tfrecords-38-y1-val/*' \
+        --train_files='/home/astronet/tfrecords-new+old/train/*' \
+        --eval_files='/home/astronet/tfrecords-new+old/test/*' \
         --train_steps=0 \
         --model_dir="/mnt/tess/astronet/checkpoints/${NAME}_38_y1_run_2/${i}"
 done
@@ -36,8 +36,8 @@ do
     python astronet/train.py \
         --model=${MODEL} \
         --config_name=${CFG} \
-        --train_files='/mnt/tess/astronet/tfrecords-38-y2-train/*' \
-        --eval_files='/mnt/tess/astronet/tfrecords-38-y2-val/*' \
+        --train_files='/home/astronet/tfrecords-new+old/train/*' \
+        --eval_files='/home/astronet/tfrecords-new+old/test/*' \
         --train_steps=0 \
         --model_dir="/mnt/tess/astronet/checkpoints/${NAME}_38_y2_run_2/${i}"
 done
@@ -48,8 +48,8 @@ do
     python astronet/train.py \
         --model=${MODEL} \
         --config_name=${CFG} \
-        --train_files='/mnt/tess/astronet/tfrecords-38-y3-train/*' \
-        --eval_files='/mnt/tess/astronet/tfrecords-38-y3-val/*' \
+        --train_files='/home/astronet/tfrecords-new+old/train/*' \
+        --eval_files='/home/astronet/tfrecords-new+old/test/*' \
         --train_steps=0 \
         --model_dir="/mnt/tess/astronet/checkpoints/${NAME}_38_y3_run_2/${i}"
 done
