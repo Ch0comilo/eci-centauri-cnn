@@ -29,23 +29,15 @@ from statsmodels.robust import scale
 
 
 def read_and_process_light_curve(tess_data_dir, flux_key, filename, min_t, max_t):
-    filename = os.path.join(tess_data_dir, filename) 
-    all_time, all_mag = tess_io.read_tess_light_curve(filename, flux_key)
+  filename = os.path.join(tess_data_dir, filename) 
+  all_time, all_mag = tess_io.read_tess_light_curve(filename, flux_key)
     
-    # Ensure min_t and max_t are floats
-    min_t = float(min_t)
-    max_t = float(max_t)
-    
-    # Ensure all_time is a float array
-    all_time = np.array(all_time, dtype=float)
-    all_mag = np.array(all_mag, dtype=float)
-    
-    mask = np.logical_and(all_time >= min_t, all_time <= max_t)
-    all_time = all_time[mask]
-    all_mag = all_mag[mask]
+  mask = np.logical_and(all_time >= min_t, all_time <= max_t)
+  all_time = all_time[mask]
+  all_mag = all_mag[mask]
 
-    assert len(all_time)
-    return all_time, all_mag
+  assert len(all_time)
+  return all_time, all_mag
 
 
 def get_spline_mask(time, period, t0, tdur):
